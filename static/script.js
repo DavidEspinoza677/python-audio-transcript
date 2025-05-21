@@ -5,6 +5,7 @@ const status = document.getElementById("status");
 let recognition;
 let isRecognizing = false;
 let finalTranscript = '';
+let transcriptStack = []; // Aquí está la pila
 
 if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
   alert("Tu navegador no soporta reconocimiento de voz. Usa Google Chrome en computadora.");
@@ -26,6 +27,13 @@ if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
   };
 
   recognition.onend = () => {
+    if (finalTranscript.trim() !== '') {
+      transcriptStack.unshift(finalTranscript.trim()); // Agrega al inicio de la pila
+    }
+
+    // Actualiza el contenido del textarea con todas las transcripciones
+    output.value = transcriptStack.map((t, i) => `${i + 1}. ${t}`).join("\n\n");
+
     status.textContent = "Listo para grabar nuevamente";
     startBtn.textContent = "🎙️ Iniciar Grabación";
     isRecognizing = false;
@@ -37,12 +45,13 @@ if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript;
       if (event.results[i].isFinal) {
-        finalTranscript += transcript + "\n";
+        finalTranscript += transcript;
       } else {
         interimTranscript += transcript;
       }
     }
 
+    // Muestra lo que se está grabando actualmente
     output.value = finalTranscript + interimTranscript;
   };
 
