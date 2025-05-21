@@ -4,11 +4,13 @@ const status = document.getElementById("status");
 const attendBtn = document.getElementById("attendBtn");
 const attendingDisplay = document.getElementById("attending");
 const queueList = document.getElementById("queueList");
+const attendedList = document.getElementById("attendedList");
 
 let recognition;
 let isRecognizing = false;
 let finalTranscript = '';
-let transcriptStack = [];
+let queue = [];     // Transcripciones por atender (cola)
+let attended = [];  // Transcripciones ya atendidas
 
 if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
   alert("Tu navegador no soporta reconocimiento de voz. Usa Google Chrome en computadora.");
@@ -31,7 +33,7 @@ if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
 
   recognition.onend = () => {
     if (finalTranscript.trim() !== '') {
-      transcriptStack.unshift(finalTranscript.trim());
+      queue.push(finalTranscript.trim()); // Añadir a cola
       updateQueueDisplay();
     }
     finalTranscript = '';
@@ -42,7 +44,6 @@ if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
 
   recognition.onresult = (event) => {
     let interimTranscript = '';
-
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript;
       if (event.results[i].isFinal) {
@@ -51,7 +52,6 @@ if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
         interimTranscript += transcript;
       }
     }
-
     output.value = finalTranscript + interimTranscript;
   };
 
@@ -66,12 +66,13 @@ if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
   });
 
   attendBtn.addEventListener("click", () => {
-    if (transcriptStack.length === 0) {
+    if (queue.length === 0) {
       attendingDisplay.textContent = "No hay transcripciones para atender.";
       return;
     }
 
-    const current = transcriptStack.shift();
+    const current = queue.shift(); // Quitar de la cola
+    attended.push(current);        // Pasar a atendidos
     attendingDisplay.textContent = "Ahora atendiendo a: " + current;
 
     const utterance = new SpeechSynthesisUtterance("Ahora atendiendo a: " + current);
@@ -79,10 +80,17 @@ if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
     window.speechSynthesis.speak(utterance);
 
     updateQueueDisplay();
+    updateAttendedDisplay();
   });
 
   function updateQueueDisplay() {
-    queueList.innerHTML = transcriptStack
+    queueList.innerHTML = queue
+      .map((t, i) => `<li class="mb-2"><strong>${i + 1}.</strong> ${t}</li>`)
+      .join('');
+  }
+
+  function updateAttendedDisplay() {
+    attendedList.innerHTML = attended
       .map((t, i) => `<li class="mb-2"><strong>${i + 1}.</strong> ${t}</li>`)
       .join('');
   }
