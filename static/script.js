@@ -1,11 +1,14 @@
 const startBtn = document.getElementById("startBtn");
 const output = document.getElementById("output");
 const status = document.getElementById("status");
+const attendBtn = document.getElementById("attendBtn");
+const attendingDisplay = document.getElementById("attending");
+const queueList = document.getElementById("queueList");
 
 let recognition;
 let isRecognizing = false;
 let finalTranscript = '';
-let transcriptStack = []; // Aquí está la pila
+let transcriptStack = [];
 
 if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
   alert("Tu navegador no soporta reconocimiento de voz. Usa Google Chrome en computadora.");
@@ -28,12 +31,10 @@ if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
 
   recognition.onend = () => {
     if (finalTranscript.trim() !== '') {
-      transcriptStack.unshift(finalTranscript.trim()); // Agrega al inicio de la pila
+      transcriptStack.unshift(finalTranscript.trim());
+      updateQueueDisplay();
     }
-
-    // Actualiza el contenido del textarea con todas las transcripciones
-    output.value = transcriptStack.map((t, i) => `${i + 1}. ${t}`).join("\n\n");
-
+    finalTranscript = '';
     status.textContent = "Listo para grabar nuevamente";
     startBtn.textContent = "🎙️ Iniciar Grabación";
     isRecognizing = false;
@@ -51,7 +52,6 @@ if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
       }
     }
 
-    // Muestra lo que se está grabando actualmente
     output.value = finalTranscript + interimTranscript;
   };
 
@@ -64,4 +64,26 @@ if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
       recognition.start();
     }
   });
+
+  attendBtn.addEventListener("click", () => {
+    if (transcriptStack.length === 0) {
+      attendingDisplay.textContent = "No hay transcripciones para atender.";
+      return;
+    }
+
+    const current = transcriptStack.shift();
+    attendingDisplay.textContent = "Ahora atendiendo a: " + current;
+
+    const utterance = new SpeechSynthesisUtterance("Ahora atendiendo a: " + current);
+    utterance.lang = "es-ES";
+    window.speechSynthesis.speak(utterance);
+
+    updateQueueDisplay();
+  });
+
+  function updateQueueDisplay() {
+    queueList.innerHTML = transcriptStack
+      .map((t, i) => `<li class="mb-2"><strong>${i + 1}.</strong> ${t}</li>`)
+      .join('');
+  }
 }
